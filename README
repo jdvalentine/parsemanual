@@ -1,3 +1,10 @@
+Sun Jan 23 21:09:57 GMT 2011
+
+The func_as_at_23012011.xml is the current output of the parser. You'll want to run it afresh
+to get a really up-to-date function list by downloading the PHP manual and running
+this parser. Or you might be happy to put up with this old one, in which case, download it, and you don't
+need to run any of this code at all...
+
 Sun Jan 23 20:19:59 GMT 2011
 
 This is my repair of a technique for generating a function list for phpm from
