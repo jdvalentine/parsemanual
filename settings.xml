@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<settings>
+    <cvsdir>/home/james/Documents/phpdoc-en/en/reference/</cvsdir>
+    <debug>1</debug>
+    <save>func.xml</save>
+</settings>

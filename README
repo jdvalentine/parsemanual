@@ -1,0 +1,27 @@
+Sun Jan 23 20:19:59 GMT 2011
+
+This is my repair of a technique for generating a function list for phpm from
+the work of the PHP Documentation project. I was working on old,
+unmaintained code from from the Web Archive. If it still works, the
+link to the source:
+http://web.archive.org/web/20041206211514/phpvolcano.com/articles/manual/index.php
+
+I include a wget of the file in doc/ in case it is pulled.
+
+My repairs basically amount to mending the parser which used getChild()
+incorrectly - this was probably supported in PHP4 when the article
+was first written, but the new DirectoryIteratorIterator() method
+should be used instead. In other words, I've solved SamPeng's problem
+in his 26/03/2009 comment on http://eide.org/2009/01/02/phpm/
+
+Credit is due to the original author of the code, I suspect Håvard Eide
+http://eide.org but I'm afraid I'm not sure and haven't the time to
+research it...
+
+BTW, it isn't just enough to run this code. You need to follow through the
+article in doc/ in order to understand
+1) what to run it on
+2) what to do next to get phpm working on your system
+
+All the best!
+J.

@@ -1,0 +1,94 @@
+body{
+    margin: 0px;
+}
+td, div{
+    font-family: verdana, times, helvetica;
+    font-size: 9pt;
+}
+div.top{
+    background-color: #FFFFFF;
+    height: 103px;
+}
+div.menu{
+    position: relative;
+    top: 2px;
+    border-color: #000000;
+    border-bottom: 1px solid;
+    border-left: 2px solid;
+    border-right: 1px solid;
+    border-top: 2px solid;
+    padding: 4px;
+    width: 762px;
+}
+div.main{
+    border-left: 0px dashed;
+    border-right: 0px dashed;
+    border-bottom: 0px dashed;
+    text-align: left;
+    width: 756px;
+    padding: 7px;
+    margin-bottom: 20px;
+}
+div.rightBlock{
+    margin-bottom: 15px;
+    width: 145px;
+    border: 1px solid;
+}
+div.rightBlockHeading{
+    border-bottom: 1px solid;
+    text-align: center;
+    font-weight: 700;
+    padding: 4px;
+    background-color: #ABC;
+}
+div.rightBlockMain{
+    padding: 4px;
+    font-size: 9pt;
+}
+div.pageHeading{
+    font-family: verdana;
+    font-size: 12pt;
+    font-weight: 700;
+}
+div.contentHeader{
+    font-weight: 800;
+}
+td.mainRight{
+    border-left: 0px solid;
+    padding-left: 5px;
+}
+p{
+    padding-left: 10px;
+}
+h1{
+    font-size: 13pt;
+    font-weight: 700;
+}	
+h2{
+    font-size: 11pt;
+    font-weight: 700;
+}
+a{
+    color: #000000;
+    font-family: verdana;
+}
+a.menu{
+    font-size: 11pt;
+    text-decoration: none;
+}	
+a.menu:hover{
+    text-decoration: underline;
+}
+.code{
+    background-color: #FFFFF0;
+    border:1px dashed;
+    padding: 5px;
+    font-family: verdana, times, helvetica;
+    font-size: 10pt;
+}
+
+.zend{
+    background-color: #9999FF;
+    border:1px solid;
+    padding: 5px;
+}

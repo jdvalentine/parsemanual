@@ -1,0 +1,288 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+
+        <meta name="Author" content="Havard Eide">
+        <meta name="keywords" lang="en" content="PHP, PHP5, OOP, interface, abstract">
+        <title>PHPVolcano </title>
+        <link rel="stylesheet" type="text/css" href="style.css" ></link>
+    </head>
+    <body>
+        <center>
+            <div class="top">
+                <img src="bluephp.png" />
+            </div>
+            <div class="menu">
+                &lt;&lt;
+                <a href="http://www.phpvolcano.com/index.php" class="menu">Home</a> ::
+                <a href="http://www.phpvolcano.com/epc/index.php" class="menu">EPC</a> ::
+                <a href="http://www.phpvolcano.com/articles/index.php" class="menu">Articles</a> ::
+                <a href="http://blog.phpvolcano.com" class="menu">Blog</a> ::
+                <a href="http://www.phpvolcano.com/forum/" class="menu">Forum</a> ::
+                <a href="http://www.phpvolcano.com/links.php" class="menu">Links</a> ::
+                <a href="http://www.phpvolcano.com/files.php" class="menu">Files</a> ::
+                <a href="http://www.phpvolcano.com/contact.php" class="menu">Contact</a> ::
+                <a href="http://www.phpvolcano.com/about.php" class="menu">About</a>
+                &gt;&gt;
+            </div>
+            <div class="main">
+                <table height="70%">
+                    <tr>
+                        <td valign="top" align="left" width="600" height="100%"><h2>The PHP manual - revisited</h2>
+<p>
+	The <a href="http://www.php.net/manual/en/index.php" title="PHP manual">PHP manual</a> is one of the things that
+	makes PHP great: it's clean, has a good overview of functions and not least: has a very good
+	user-contributed section where a lot of tips can be picked up by anyone ( and let's not forget the 
+	<a href="http://www.php.net/download-docs.php">chm</a> formatted manual ). In addition there are
+	<a href="http://www.php.net/tips.php">several tips</a> on how to integrate the PHP manual into various
+	applications. 
+</p>
+<p>
+	All in all, the manual is great, it covers the entire collection of functions ( and that's not a small number ), and 
+	my most used feature is <strong>php.net/{function}</strong> that will take me directly to the function that I want
+	to get the correct syntax for/get some more information on.
+</p>
+<p>
+	But, there's got to be a but here, otherwise I wouldn't be writing this? I work in 
+	<a href="http://en.wikipedia.org/wiki/Vim" title="Vim at wikipedia.org">Vim</a> 8-10 hours a day and I got 
+	to head over to the manual every so often to check the correct syntax for a function call. This means taking 
+	the following steps: 
+	<ol>
+		<li>take my hand of the keyboard and to the mouse</li>
+		<li>Find Firefox and get it to the foreground</li>
+		<li>type in php.net/{function}</li>
+		<li>get the focus back to Vim</li>
+		<li>get my hand back on the keyboard ready to continue coding</li>
+	</ol>
+</p>
+<p>
+	Now: that's 5 steps, and it's quite annoying at times, because most of the time I'm just after the params to a function
+	and what order they go in. So, I thought: here's a problem ( ok, maybe not a problem, but more of a itch ) that must be 
+	solved in a better way! Being a programmer I did what I do best: I scratched the itch and came up with a tiny program that 
+	enables me to do the 5 steps above typing one command and then enter from within Vim: I created a program that parse the DocBook
+	source that generates the PHP manual, creates a single XML file that contains all the funcion calls, and a tiny program that will
+	query this XML file with some XPath. This means that all I have to do in Vim is:
+</p>
+<div class="code">
+<pre>
+:!phpm in_array
+</pre>
+</div>
+<p>
+	( phpm of course being a acronym for PHP Manual ) This is a small program that can be run from anywhere in
+	the shell:
+</p>
+<div class="code">
+<pre>
+nucleuz: nucleuz$ phpm in_array
+bool in_array ( mixed $needle, array $haystack, [bool $strict] )
+</pre>
+</div>
+<p>
+	With that I have solved my itch: I get the correct syntax from within Vim without having to lift my hands from the 
+	keyboard, many people might find this a trivial thing to do "it's just to open the browser, not that big a deal!", but: 
+	with the amount of code I write everyday this gets less than trivial on a day-to-day basis.
+</p>
+<p>
+	So: there you have it, I had an itch, and I scrathced it, but: I documented the process of what I did, and the following
+	article is a look at what I did, and how this program works.
+</p>
+<h2>DocBook</h2>
+<p>
+	Now, the entire PHP manual is written in the <a href="http://en.wikipedia.org/wiki/DocBook" title="DocBook at wikipedia">DocBook</a>
+	format to allow it to be transformed into different formats from a single source ( a defacto standard when it comes to 
+	documentation ). There is a lot of information to tap into, but for this program we only need to get to the function 
+	calls and the correct params that these take.
+</p>
+<p>
+	So, we have a <a href="http://cvs.php.net/phpdoc/en/reference/">whole lot of XML</a> files that documents the PHP functions, 
+	each section ( like <a href="http://cvs.php.net/phpdoc/en/reference/mysql/">mysql</a> ) have a separate directory called 
+	<a href="http://cvs.php.net/phpdoc/en/reference/mysql/functions/">functions</a>
+	with one XML file for each function call, like: <a href="http://cvs.php.net/phpdoc/en/reference/mysql/functions/mysql-query.xml">mysql-query.xml</a>.
+	This makes for a pretty straight-forward directory structure:
+</p>
+<div class="code">
+<pre>
+en/reference/
+    |-mysql
+        |-functions
+            |-mysql-query.xml
+</pre>
+</div>
+<p>
+	It's inside each of these files that we find the correct syntax for any given function in PHP, and it looks like this:
+</p>
+<div class="code">
+<pre>
+&lt;methodsynopsis&gt;
+	&lt;type&gt;resource&lt;/type&gt;
+	&lt;methodname&gt;mysql_query&lt;/methodname&gt;
+	&lt;methodparam&gt;
+		&lt;type&gt;string&lt;/type&gt;
+		&lt;parameter&gt;query&lt;/parameter&gt;
+	&lt;/methodparam&gt;
+	&lt;methodparam choice=&quot;opt&quot;&gt;
+		&lt;type&gt;resource&lt;/type&gt;
+		&lt;parameter&gt;link_identifier&lt;/parameter&gt;
+	&lt;/methodparam&gt;
+&lt;/methodsynopsis&gt;</pre>
+</div>
+<p>
+	That will make it pretty simple to find ( once you see the code below you will see how easy it really is ) once we
+	have the source down. So: we need the source of PHP documentation before going any further, to get this you will need
+	a CVS program ( the only besides PHP to make this program work - to generate the actuall PHP manual there is a bit more
+	work in place, <a href="http://no.php.net/manual/howto/index.html">take a look at this document</a> for more information
+	on that.),
+</p>
+<div class="code">
+<pre>
+cvs -d :pserver:cvsread@cvs.php.net:/repository login
+cvs -d :pserver:cvsread@cvs.php.net:/repository checkout phpdoc
+</pre>
+</div>
+<p>
+	Login with the password <strong>phpfi</strong> and you should see the entire phpdoc tree on your machine ( it's about
+	40MB, so depending on  your connection it might take some time.... )
+</p>
+
+
+<h2>Settings</h2>
+<p>
+	We are going to create two programs, one for generating a single XML file with all the function calls, and one
+	for looking up the functions from that single XML file, so, we need some sort of settings, I could be lazy and just have 
+	a PHP include file, but since we are doing XML parsing, let's do a XML file and use SimpleXML to load it when the program runs:
+</p>
+<div class="code">
+<pre>
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;iso-8859-1&quot;?&gt;
+&lt;settings&gt;
+    &lt;cvsdir&gt;/Users/nucleuz/cvs/phpdoc/en/reference&lt;/cvsdir&gt;
+    &lt;debug&gt;1&lt;/debug&gt;
+    &lt;save&gt;func.xml&lt;/save&gt;
+&lt;/settings&gt;</pre>
+</div>
+<p>
+	Breakdown of the variables:
+	<ul>
+		<li>cvsdir: the path to the CVS directory that contain the reference directory</li>
+		<li>debug: if set to 1 it will spit out some extra information while parsing the PHP documentation</li>
+		<li>save: the file where we are saving the function settings.</li>
+	</ul>
+</p>
+
+<h2>The parsing</h2>
+<p>
+	Now we know how the functions are stored as XML in the php manual and we have a settings file, time to fire up 
+	your PHP editor and start typing: the goal is to get <strong>all</strong> the function calls from the <strong>reference/</strong> 
+	directory and store them in a single file, the parser is a class:
+</p>
+<div class="code">
+<code><font color="#000000">
+<font color="#0000BB">&lt;?php<br /></font><font color="#FF8000">/**<br /> *&nbsp;&nbsp;&nbsp;&nbsp;PHP.net DocBook manual parser.<br /> *&nbsp;&nbsp;&nbsp;<br /> *&nbsp;&nbsp;&nbsp;&nbsp;The purpose of the class is to generate a XML file that <br /> *&nbsp;&nbsp;&nbsp;&nbsp;contains all the function calls available in the PHP manual, <br /> *&nbsp;&nbsp;&nbsp;&nbsp;this will be used to make a CLI function lookup program.<br /> *<br /> *&nbsp;&nbsp;&nbsp;&nbsp;@package Epc_Xml<br /> *&nbsp;&nbsp;&nbsp;&nbsp;@copyright 2004 Havard Eide<br /> */<br /><br />// {{{ class EPCManualParser <br /></font><font color="#007700">class </font><font color="#0000BB">EPC_XML_ManualParser<br /></font><font color="#007700">{<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// {{{ private variables<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">private $settings</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">private $buffer</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// }}}<br /><br />&nbsp;&nbsp;&nbsp;&nbsp;// {{{ public function __construct( $startDir )<br />&nbsp;&nbsp;&nbsp;&nbsp;/**<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;Create a new manual parser<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@param $startDir string Where are we starting the parsing<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@access public<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@return void<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/ <br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">public </font><font color="#007700">function </font><font color="#0000BB">__construct</font><font color="#007700">( </font><font color="#0000BB">$conf </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( </font><font color="#0000BB">file_exists</font><font color="#007700">( </font><font color="#0000BB">$conf </font><font color="#007700">) )<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">settings </font><font color="#007700">= </font><font color="#0000BB">simplexml_load_file</font><font color="#007700">( </font><font color="#0000BB">$conf </font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( !</font><font color="#0000BB">file_exists</font><font color="#007700">( </font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">settings</font><font color="#007700">-&gt;</font><font color="#0000BB">cvsdir </font><font color="#007700">) )<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;die( <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#DD0000">"Can't find the CVS dir in: " </font><font color="#007700">. <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">settings</font><font color="#007700">-&gt;</font><font color="#0000BB">cvsdir <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;die( </font><font color="#DD0000">"Can't load a settings file that is missing...." </font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">buffer </font><font color="#007700">= </font><font color="#DD0000">''</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// }}}<br /><br />&nbsp;&nbsp;&nbsp;&nbsp;// {{{ public function run()<br />&nbsp;&nbsp;&nbsp;&nbsp;/**<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;Main function on the object, initiates the parsing<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;of the main document tree.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@access public<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@return void<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">public </font><font color="#007700">function </font><font color="#0000BB">run</font><font color="#007700">()<br />&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// XML declaration is good to have:<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">buffer </font><font color="#007700">= </font><font color="#DD0000">'&lt;?xml version="1.0" encoding="iso-8859-1"?&gt;'</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">buffer </font><font color="#007700">.= </font><font color="#DD0000">"\n&lt;manual&gt;"</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">/*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;We loop over all the directories in the dir given in the <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;constructor: each of these will have a directory called <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;"functions", this is where all the XML files we want <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;to process are.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$dir </font><font color="#007700">= new </font><font color="#0000BB">RecursiveDirectoryIterator</font><font color="#007700">( <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">settings</font><font color="#007700">-&gt;</font><font color="#0000BB">cvsdir <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;foreach( </font><font color="#0000BB">$dir </font><font color="#007700">as </font><font color="#0000BB">$file </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo </font><font color="#DD0000">"&gt;&gt;Processing: $file\n"</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( </font><font color="#0000BB">$file</font><font color="#007700">-&gt;</font><font color="#0000BB">isDir</font><font color="#007700">() &amp;&amp; </font><font color="#0000BB">$file</font><font color="#007700">-&gt;</font><font color="#0000BB">getFileName</font><font color="#007700">() != </font><font color="#DD0000">"CVS" </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;foreach( </font><font color="#0000BB">$file</font><font color="#007700">-&gt;</font><font color="#0000BB">getChildren</font><font color="#007700">() as </font><font color="#0000BB">$f </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( </font><font color="#0000BB">$f</font><font color="#007700">-&gt;</font><font color="#0000BB">getFileName</font><font color="#007700">() == </font><font color="#DD0000">"functions" </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">processDirectory</font><font color="#007700">( </font><font color="#0000BB">$f</font><font color="#007700">-&gt;</font><font color="#0000BB">getChildren</font><font color="#007700">() );<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">buffer </font><font color="#007700">.= </font><font color="#DD0000">"\n&lt;/manual&gt;"</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">file_put_contents</font><font color="#007700">( </font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">settings</font><font color="#007700">-&gt;</font><font color="#0000BB">save</font><font color="#007700">, </font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">buffer </font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// }}}<br />&nbsp;&nbsp;&nbsp;&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;// {{{ private function processDirectory( $file )<br />&nbsp;&nbsp;&nbsp;&nbsp;/**<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;Helper function that iterates over the XML files in a single <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;"functions/" directory.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;It passes each file to the processFile() function.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;@access private<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;@return void<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;@param $file object A DirectoryIterator instance<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">private </font><font color="#007700">function </font><font color="#0000BB">processDirectory</font><font color="#007700">( </font><font color="#0000BB">DirectoryIterator $file </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;foreach( </font><font color="#0000BB">$file </font><font color="#007700">as </font><font color="#0000BB">$f </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">processFile</font><font color="#007700">( </font><font color="#0000BB">$f </font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// }}}<br />&nbsp;&nbsp;&nbsp;&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;// {{{ private function processFile( $file )<br />&nbsp;&nbsp;&nbsp;&nbsp;/**<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;This function is where all the lookup of the manual entry is.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;We are very lazy here: we suppress any errors that the <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;Dom might throw at us, and we load the XML data as HTML - <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;we're just interested in a particular node - no need to <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;have a whole document that is valid, as long as we are able<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;to get to the "methodsynopsis" node.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@param $file object A DirectoryIterator instance<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@access private<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@return void<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">private </font><font color="#007700">function </font><font color="#0000BB">processFile</font><font color="#007700">( </font><font color="#0000BB">DirectoryIterator $file </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$dom </font><font color="#007700">= new </font><font color="#0000BB">DomDocument</font><font color="#007700">();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;@</font><font color="#0000BB">$dom</font><font color="#007700">-&gt;</font><font color="#0000BB">loadHTML</font><font color="#007700">( </font><font color="#0000BB">file_get_contents</font><font color="#007700">( </font><font color="#0000BB">$file</font><font color="#007700">-&gt;</font><font color="#0000BB">getPathName</font><font color="#007700">() ) );<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$xpath </font><font color="#007700">= new </font><font color="#0000BB">DomXpath</font><font color="#007700">( </font><font color="#0000BB">$dom </font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// Get the node where the description of the function call is:<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$result </font><font color="#007700">= @</font><font color="#0000BB">$xpath</font><font color="#007700">-&gt;</font><font color="#0000BB">query</font><font color="#007700">( </font><font color="#DD0000">"//methodsynopsis" </font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// Make sure we find a node:<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#007700">if( </font><font color="#0000BB">$result</font><font color="#007700">-&gt;</font><font color="#0000BB">item</font><font color="#007700">( </font><font color="#0000BB">0 </font><font color="#007700">) )<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( </font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">settings</font><font color="#007700">-&gt;</font><font color="#0000BB">debug </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo </font><font color="#DD0000">"\tparsing: " </font><font color="#007700">. </font><font color="#0000BB">$file</font><font color="#007700">-&gt;</font><font color="#0000BB">getFileName</font><font color="#007700">() . </font><font color="#DD0000">"\n"</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$xml </font><font color="#007700">= </font><font color="#0000BB">simplexml_import_dom</font><font color="#007700">( </font><font color="#0000BB">$result</font><font color="#007700">-&gt;</font><font color="#0000BB">item</font><font color="#007700">( </font><font color="#0000BB">0 </font><font color="#007700">) );<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// Set the "function" attribute<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// this is what we will look for later.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$xml</font><font color="#007700">[</font><font color="#DD0000">'function'</font><font color="#007700">] = (string)</font><font color="#0000BB">$xml</font><font color="#007700">-&gt;</font><font color="#0000BB">methodname</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">buffer </font><font color="#007700">.= </font><font color="#DD0000">"\n" </font><font color="#007700">. </font><font color="#0000BB">$xml</font><font color="#007700">-&gt;</font><font color="#0000BB">asXml</font><font color="#007700">();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br /><br />}<br /></font><font color="#FF8000">// }}}<br /></font><font color="#0000BB">?&gt;</font>
+</font>
+</code></div>
+<p>
+	To use this we need a new file:
+</p>
+<div class="code">
+<code><font color="#000000">
+<font color="#0000BB">&lt;?php<br /></font><font color="#FF8000">/**<br /> *&nbsp;&nbsp;&nbsp;&nbsp;PHP manual parser.<br /> *<br /> *&nbsp;&nbsp;&nbsp;&nbsp;@copyright 2004 Havard Eide<br /> */ <br /></font><font color="#007700">echo </font><font color="#DD0000">"&gt;&gt; Starting up...\n"</font><font color="#007700">;<br /><br />include( </font><font color="#DD0000">"lib/epc/xml/manualparser.php" </font><font color="#007700">);<br /></font><font color="#0000BB">$parser </font><font color="#007700">= new </font><font color="#0000BB">EPC_XML_ManualParser</font><font color="#007700">( </font><font color="#DD0000">"settings.xml" </font><font color="#007700">);<br /></font><font color="#0000BB">$parser</font><font color="#007700">-&gt;</font><font color="#0000BB">run</font><font color="#007700">();<br /><br />echo </font><font color="#DD0000">"&gt;&gt; Finished\n\n"</font><font color="#007700">;<br /></font><font color="#0000BB">?&gt;</font>
+</font>
+</code></div>
+<p>
+	And we have generated a single file with all the function calls and the params that they take, ready to be parsed by
+	another program ( the file is approx. 1MB/40.000 lines of XML )
+</p>
+<p>
+	There isn't much checking here, and I'll update the program further on later to do this, but for now
+	this makes a good example on how to use the DirectoryIterator, Dom, Xpath and SimpleXML to store settings
+	for a program.
+</p>
+
+<h2>The reader</h2>
+<p>
+	We need a program to read this information as well: again, it's much smaller than one could think: all we 
+	need to do is to load the XML file we have created, do a XPath for the <em>function</em> attribute and
+	display this information to the user. 
+</p>
+<p>
+	Again: we have a class that does the big part of the program:
+</p>
+<div class="code">
+<code><font color="#000000">
+<font color="#0000BB">&lt;?php<br /></font><font color="#FF8000">/**<br /> *&nbsp;&nbsp;&nbsp;&nbsp;PHP manual function-lookup class.<br /> *&nbsp;&nbsp;&nbsp;&nbsp;Together with the EPC_Xml_ManualReader class this <br /> *&nbsp;&nbsp;&nbsp;&nbsp;makes function-lookup<br /> *&nbsp;&nbsp;&nbsp;&nbsp;in the terminal a breeze.<br /> *<br /> *&nbsp;&nbsp;&nbsp;&nbsp;@package EPC_Xml<br /> *&nbsp;&nbsp;&nbsp;&nbsp;@copyright 2004 Havard Eide<br /> */<br /></font><font color="#007700">class </font><font color="#0000BB">EPC_Xml_ManualReader<br /></font><font color="#007700">{<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// {{{ private variables <br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">private $dom</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">private $xpath</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">private $xml</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// }}}<br />&nbsp;&nbsp;&nbsp;&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;// {{{ public function __construct( $conf )<br />&nbsp;&nbsp;&nbsp;&nbsp;/**<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;Constructor.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;Makes sure that the settings file is correct and we <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;have everything needed to execute the application.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@param $conf string Path to the same settings <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;file that is used in EPC_Xml_ManualParser<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@access public<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@return void<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">public </font><font color="#007700">function </font><font color="#0000BB">__construct</font><font color="#007700">( </font><font color="#0000BB">$conf </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( </font><font color="#0000BB">file_exists</font><font color="#007700">( </font><font color="#0000BB">$conf </font><font color="#007700">) )<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">settings </font><font color="#007700">= </font><font color="#0000BB">simplexml_load_file</font><font color="#007700">( </font><font color="#0000BB">$conf </font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( !</font><font color="#0000BB">file_exists</font><font color="#007700">( </font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">settings</font><font color="#007700">-&gt;</font><font color="#0000BB">save </font><font color="#007700">) )<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;die( </font><font color="#DD0000">"Can't find the input file" </font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;&nbsp;&nbsp;&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;die( </font><font color="#DD0000">"Can't load a missing settings file" </font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">dom </font><font color="#007700">= new </font><font color="#0000BB">DomDocument</font><font color="#007700">();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">dom</font><font color="#007700">-&gt;</font><font color="#0000BB">load</font><font color="#007700">( </font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">settings</font><font color="#007700">-&gt;</font><font color="#0000BB">save </font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">xpath </font><font color="#007700">= new </font><font color="#0000BB">DomXpath</font><font color="#007700">( </font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">dom </font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// }}}<br />&nbsp;&nbsp;&nbsp;&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;// {{{ public function query( $func )<br />&nbsp;&nbsp;&nbsp;&nbsp;/**<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;Query the XML file that keeps all the function calls with a <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;XPath query to see if the user have entered a valid <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;PHP function call.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@param $func string A valid PHP function call<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;@return bool<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">public </font><font color="#007700">function </font><font color="#0000BB">query</font><font color="#007700">( </font><font color="#0000BB">$func </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$result </font><font color="#007700">= </font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">xpath</font><font color="#007700">-&gt;</font><font color="#0000BB">query</font><font color="#007700">( <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#DD0000">"//methodsynopsis[@function=\"" </font><font color="#007700">. </font><font color="#0000BB">$func </font><font color="#007700">. </font><font color="#DD0000">"\"]" <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( </font><font color="#0000BB">$result</font><font color="#007700">-&gt;</font><font color="#0000BB">item</font><font color="#007700">( </font><font color="#0000BB">0 </font><font color="#007700">) )<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">xml </font><font color="#007700">= </font><font color="#0000BB">simplexml_import_dom</font><font color="#007700">( </font><font color="#0000BB">$result</font><font color="#007700">-&gt;</font><font color="#0000BB">item</font><font color="#007700">( </font><font color="#0000BB">0 </font><font color="#007700">) );<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return </font><font color="#0000BB">true</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return </font><font color="#0000BB">false</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// }}}<br />&nbsp;&nbsp;&nbsp;&nbsp;<br />&nbsp;&nbsp;&nbsp;&nbsp;// {{{ public function display()<br />&nbsp;&nbsp;&nbsp;&nbsp;/**<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;Display the function queried for to the user.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;This function dumps the content out, no special considerations<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;are taken for now on where to output the content.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;If you want to use the result somewhere else: pipe it or use the<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;ob_*() functions to collect the content.<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;@acccess public<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;@return void<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">public </font><font color="#007700">function </font><font color="#0000BB">display</font><font color="#007700">()<br />&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo </font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">xml</font><font color="#007700">-&gt;</font><font color="#0000BB">type </font><font color="#007700">. </font><font color="#DD0000">" " </font><font color="#007700">. </font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">xml</font><font color="#007700">[</font><font color="#DD0000">'function'</font><font color="#007700">] . </font><font color="#DD0000">" ( "</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$param </font><font color="#007700">= </font><font color="#DD0000">''</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;foreach( </font><font color="#0000BB">$this</font><font color="#007700">-&gt;</font><font color="#0000BB">xml</font><font color="#007700">-&gt;</font><font color="#0000BB">methodparam </font><font color="#007700">as </font><font color="#0000BB">$p </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$tmp </font><font color="#007700">= </font><font color="#0000BB">$p</font><font color="#007700">-&gt;</font><font color="#0000BB">type </font><font color="#007700">. </font><font color="#DD0000">" $" </font><font color="#007700">. </font><font color="#0000BB">trim</font><font color="#007700">( </font><font color="#0000BB">$p</font><font color="#007700">-&gt;</font><font color="#0000BB">parameter </font><font color="#007700">) ;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( isset(</font><font color="#0000BB">$p</font><font color="#007700">[</font><font color="#DD0000">'choice'</font><font color="#007700">] ) &amp;&amp; </font><font color="#0000BB">$p</font><font color="#007700">[</font><font color="#DD0000">'choice'</font><font color="#007700">] == </font><font color="#DD0000">"opt" </font><font color="#007700">)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$tmp </font><font color="#007700">= </font><font color="#DD0000">"[" </font><font color="#007700">. </font><font color="#0000BB">$tmp </font><font color="#007700">. </font><font color="#DD0000">"]"</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$param </font><font color="#007700">.= </font><font color="#0000BB">$tmp </font><font color="#007700">. </font><font color="#DD0000">", "</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#0000BB">$param </font><font color="#007700">= </font><font color="#0000BB">preg_replace</font><font color="#007700">( </font><font color="#DD0000">"/, $/"</font><font color="#007700">, </font><font color="#DD0000">""</font><font color="#007700">, </font><font color="#0000BB">$param </font><font color="#007700">);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo </font><font color="#0000BB">$param</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;echo </font><font color="#DD0000">" )\n"</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;</font><font color="#FF8000">// }}}<br /></font><font color="#007700">}<br /></font><font color="#0000BB">?&gt;</font>
+</font>
+</code></div>
+<p>
+	And again a new file to run this with:
+</p>
+<div class="code">
+<code><font color="#000000">
+<font color="#0000BB">&lt;?php<br /></font><font color="#FF8000">/**<br /> *&nbsp;&nbsp;&nbsp;&nbsp;Main program for looking up a PHP function.<br /> */<br /></font><font color="#007700">include( </font><font color="#DD0000">"lib/epc/xml/manualreader.php" </font><font color="#007700">);<br /></font><font color="#0000BB">$xml </font><font color="#007700">= new </font><font color="#0000BB">EPC_XML_ManualReader</font><font color="#007700">( </font><font color="#DD0000">"settings.xml" </font><font color="#007700">);<br />if( </font><font color="#0000BB">$xml</font><font color="#007700">-&gt;</font><font color="#0000BB">query</font><font color="#007700">( </font><font color="#0000BB">$argv</font><font color="#007700">[</font><font color="#0000BB">1</font><font color="#007700">] ) )<br />{<br />&nbsp;&nbsp;&nbsp;&nbsp;echo </font><font color="#0000BB">$xml</font><font color="#007700">-&gt;</font><font color="#0000BB">display</font><font color="#007700">();<br />}<br />else<br />{<br />&nbsp;&nbsp;&nbsp;&nbsp;echo </font><font color="#DD0000">"Could not find the function specified"</font><font color="#007700">;<br />&nbsp;&nbsp;&nbsp;&nbsp;echo </font><font color="#DD0000">"\n"</font><font color="#007700">;<br />}<br /></font><font color="#0000BB">?&gt;</font>
+</font>
+</code></div>
+<p>
+	And we have a full program to lookup any given PHP function from the shell.
+</p>
+<p>
+	To run this final look-up program:
+</p>
+<div class="code">
+<pre>
+nucleuz:~/Sites/epc nucleuz$ php epcreader.php mysql_query
+resource mysql_query ( string $query, [resource $link_identifier] )
+nucleuz:~/Sites/epc nucleuz$ 
+</pre>
+</div>
+
+<h2>Finally</h2>
+<p>
+	I have scratched my itch and made a program that makes proper function-params lookup easy when working 
+	in a shell, not quite useful for anything else for the moment, but I'm going to deploy this program at work
+	and after some feedback from there I will keep updatring the script in the downloadable file in the
+	top right of this page, so keep checking back, because I've got some more ideas for this program.
+</p>
+<p>
+	I have made a symlink in my /usr/bin directory to this script so that I can run the program
+	with <strong>phpm mysql_query</strong>, but that's up to you and your platform.
+</p>
+                        </td>
+                        <td valign="top" align="left" class="mainRight">
+                        <center>
+<h4>PHP wiki :</h4>
+<a href="http://wiki.cc/php" title="wiki.cc"><img src="http://wp.phpvolcano.com/images/wikicc_php.png" border="0"/></a>
+<br />
+<a href="http://wiki.cc/pecl" title="wiki.cc"><img src="http://wp.phpvolcano.com/images/wikicc_pecl.png" border="0"/></a>
+<br />
+<br />
+			</center>
+			                                   <div class="rightBlock">
+                                    <div class="rightBlockHeading">
+                                        Files                                    </div>
+                                    <div class="rightBlockMain">
+                                    	<a href="http://eide.org/?epc=php">Home page</a><br />
+	<a href="http://www.wiki.cc/php/Epc_phpm">Documentation</a>                                    </div>
+                                </div>
+                                							<center>
+						<script type="text/javascript"><!--
+google_ad_client = "pub-7227429784327512";
+google_ad_width = 120;
+google_ad_height = 600;
+google_ad_format = "120x600_as";
+//--></script>
+<script type="text/javascript"
+  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
+</script>
+</center>
+<img src="http://eide.org/i/img.php?d=phpvolcano&s=/articles/manual/index.php" alt="tracker" />
+                        </td>
+                    <tr>
+                </table>
+                <br /><br />
+                <center>
+                    All material &copy; 2003-2004 phpvolcano.com
+                </center>
+            </div>
+    </body>
+
+
+</html>
